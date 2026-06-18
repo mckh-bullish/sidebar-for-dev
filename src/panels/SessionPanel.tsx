@@ -104,14 +104,17 @@ export function SessionPanel({
 
   // Buffer: TabBar(1) + marginTop(1) + title/subtitle(2) = 4
   const scrollHeight = Math.max(1, rows - 4);
+  // ScrollList items: [header, session0, session1, ...]
+  // Parent selectedIndex maps to items[selectedIndex + 1]
+  const scrollIndex = selectedIndex + 1;
 
   return (
     <Box flexDirection="column">
       <ScrollList
         ref={useRef<ScrollListRef>(null)}
         height={scrollHeight}
-        selectedIndex={0}
-        scrollAlignment="top"
+        selectedIndex={scrollIndex}
+        scrollAlignment="auto"
       >
         <StickyHeader count={sessions.length} />
         {sessions.map((s, i) => (
