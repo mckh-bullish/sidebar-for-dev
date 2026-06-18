@@ -8,11 +8,13 @@ export const HIGH_CONTRAST_COLORS = [
 
 /**
  * Calculate cost from token counts and pricing table.
- * @param inputTokens - Input tokens used
+ * @param inputTokens - Base input tokens
  * @param outputTokens - Output tokens generated
  * @param modelPricing - Pricing map from settings
  * @param modelName - Model name (vertex_ai/ prefix stripped automatically)
  * @param recordedCost - If non-null, returned directly (bypasses calculation)
+ * @param cacheReadTokens - Cache read tokens (cheaper)
+ * @param cacheWriteTokens - Cache write tokens (slightly more expensive)
  */
 export function calculateCost(
   inputTokens: number,
@@ -20,6 +22,8 @@ export function calculateCost(
   modelPricing: Settings['modelPricing'],
   modelName: string,
   recordedCost?: number | null,
+  cacheReadTokens = 0,
+  cacheWriteTokens = 0,
 ): number {
   if (recordedCost !== undefined && recordedCost !== null) {
     return recordedCost;
@@ -31,8 +35,13 @@ export function calculateCost(
     return 0;
   }
 
-  return (inputTokens / 1_000_000) * pricing.input +
-    (outputTokens / 1_000_000) * pricing.output;
+  const cacheReadRate = pricing.cacheRead ?? pricing.input * 0.1;
+  const cacheWriteRate = pricing.cacheWrite ?? pricing.input * 1.25;
+
+  return (inputTokens / 1_000_000) * pricing.input
+    + (outputTokens / 1_000_000) * pricing.output
+    + (cacheReadTokens / 1_000_000) * cacheReadRate
+    + (cacheWriteTokens / 1_000_000) * cacheWriteRate;
 }
 
 /**
@@ -45,12 +54,10 @@ export function resolveModelColor(
 ): string {
   const key = modelName.replace(/^vertex_ai\//, '');
 
-  // Check predefined colors first
   if (modelColors[key]) {
     return modelColors[key];
   }
 
-  // Deterministic hash-based color assignment
   let hash = 0;
   for (let i = 0; i < key.length; i++) {
     hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;

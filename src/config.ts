@@ -9,8 +9,10 @@ export interface RefreshIntervals {
 }
 
 export interface ModelPricing {
-  input: number; // per 1M tokens
+  input: number;       // per 1M tokens
   output: number;
+  cacheRead?: number;  // per 1M tokens (default: input * 0.1)
+  cacheWrite?: number; // per 1M tokens (default: input * 1.25)
 }
 
 export interface LiteLLMConfig {
@@ -41,9 +43,9 @@ export const DEFAULT_SETTINGS: Settings = {
     apiKey: process.env.LITELLM_API_KEY ?? '',
   },
   modelPricing: {
-    'claude-sonnet-4-6': { input: 3, output: 15 },
-    'claude-opus-4-8': { input: 15, output: 75 },
-    'claude-haiku-4-5': { input: 0.8, output: 4 },
+    'claude-sonnet-4-6': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+    'claude-opus-4-8': { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
+    'claude-haiku-4-5': { input: 0.8, output: 4, cacheRead: 0.08, cacheWrite: 1.0 },
   },
   modelColors: {
     'claude-sonnet-4-6': 'cyan',

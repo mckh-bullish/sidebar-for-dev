@@ -2,6 +2,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { homedir } from 'node:os';
 import type { NormalizedSession, SessionSnippet } from './types';
+import { calculateCost } from '../../pricing';
+import { loadConfig } from '../../config';
 
 const CLAUDE_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 
@@ -33,6 +35,7 @@ function decodeProjectPath(dirName: string): string {
 export function readClaudeSessions(
   projectsDir = CLAUDE_PROJECTS_DIR,
   cutoff: Date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+  modelPricing = loadConfig().modelPricing,
 ): NormalizedSession[] {
   const sessions: NormalizedSession[] = [];
 
@@ -68,8 +71,9 @@ export function readClaudeSessions(
       const lines = raw.trim().split('\n').filter(Boolean);
       let inputTokens = 0;
       let outputTokens = 0;
+      let cacheReadTokens = 0;
+      let cacheWriteTokens = 0;
       let cost = 0;
-      let costRecorded = false;
       let model = '';
       let lastActivity: Date | null = null;
       const messages: SessionSnippet[] = [];
@@ -92,11 +96,8 @@ export function readClaudeSessions(
           if (usage) {
             inputTokens += usage['input_tokens'] ?? 0;
             outputTokens += usage['output_tokens'] ?? 0;
-          }
-
-          if (typeof entry['costUSD'] === 'number') {
-            cost += entry['costUSD'];
-            costRecorded = true;
+            cacheReadTokens += usage['cache_read_input_tokens'] ?? 0;
+            cacheWriteTokens += usage['cache_creation_input_tokens'] ?? 0;
           }
 
           if (!model && typeof msg['model'] === 'string') {
@@ -136,15 +137,20 @@ export function readClaudeSessions(
 
       if (lastActivity < cutoff) continue;
 
+      // Claude Code never records costUSD — always calculate from tokens
+      cost = calculateCost(inputTokens, outputTokens, modelPricing, model || 'unknown', null, cacheReadTokens, cacheWriteTokens);
+      // Show total input (base + cache) for informational display
+      const totalInputTokens = inputTokens + cacheReadTokens + cacheWriteTokens;
+
       sessions.push({
         id: sessionId,
         tool: 'claude',
         project,
         lastActivity,
-        inputTokens,
+        inputTokens: totalInputTokens,
         outputTokens,
         cost,
-        costRecorded,
+        costRecorded: false,
         model: model || 'unknown',
         messages,
       });

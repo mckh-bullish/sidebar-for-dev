@@ -2,6 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { homedir } from 'node:os';
 import type { NormalizedSession, SessionSnippet } from './types';
+import { calculateCost } from '../../pricing';
+import { loadConfig } from '../../config';
 
 const PI_SESSIONS_DIR = join(homedir(), '.pi', 'agent', 'sessions');
 
@@ -29,6 +31,7 @@ function extractTextContent(content: unknown): string {
 export function readPiSessions(
   sessionsDir = PI_SESSIONS_DIR,
   cutoff: Date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+  modelPricing = loadConfig().modelPricing,
 ): NormalizedSession[] {
   const sessions: NormalizedSession[] = [];
 
@@ -108,7 +111,8 @@ export function readPiSessions(
           if (usage) {
             inputTokens += usage.input ?? 0;
             outputTokens += usage.output ?? 0;
-            if (usage.cost?.total !== undefined) {
+            // Only treat as recorded if the proxy actually returned a non-zero cost
+            if (usage.cost?.total) {
               cost += usage.cost.total;
               costRecorded = true;
             }
@@ -138,6 +142,9 @@ export function readPiSessions(
       const activity = lastActivity ?? new Date(0);
       if (activity < cutoff) continue;
 
+      // If cost not recorded (zero from local model), calculate from tokens
+      const finalCost = costRecorded ? cost : calculateCost(inputTokens, outputTokens, modelPricing, model || 'unknown');
+
       sessions.push({
         id: sessionId,
         tool: 'pi',
@@ -145,7 +152,7 @@ export function readPiSessions(
         lastActivity: activity,
         inputTokens,
         outputTokens,
-        cost,
+        cost: finalCost,
         costRecorded,
         model: model || 'unknown',
         messages,

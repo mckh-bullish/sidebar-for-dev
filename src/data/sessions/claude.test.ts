@@ -24,11 +24,10 @@ describe('claude sessions', () => {
           type: 'assistant',
           message: {
             role: 'assistant',
-            model: 'claude-sonnet-4-5',
+            model: 'claude-sonnet-4-6',
             content: [{ type: 'text', text: 'Hello world' }],
             usage: { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
           },
-          costUSD: 0.005,
           sessionId,
         }),
         JSON.stringify({
@@ -40,11 +39,10 @@ describe('claude sessions', () => {
           type: 'assistant',
           message: {
             role: 'assistant',
-            model: 'claude-sonnet-4-5',
+            model: 'claude-sonnet-4-6',
             content: [{ type: 'text', text: '4' }],
             usage: { input_tokens: 500, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
           },
-          costUSD: 0.002,
           sessionId,
         }),
       ].join('\n');
@@ -60,9 +58,10 @@ describe('claude sessions', () => {
       expect(s.tool).toBe('claude');
       expect(s.inputTokens).toBe(1500);
       expect(s.outputTokens).toBe(210);
-      expect(s.cost).toBeCloseTo(0.007, 5);
-      expect(s.costRecorded).toBe(true);
-      expect(s.model).toBe('claude-sonnet-4-5');
+      // Claude Code does not record costUSD — cost is always calculated from tokens
+      expect(s.cost).toBeGreaterThan(0); // calculated from modelPricing
+      expect(s.costRecorded).toBe(false);
+      expect(s.model).toBe('claude-sonnet-4-6');
       expect(s.project).toBe('/Users/me/myproject');
     });
 
