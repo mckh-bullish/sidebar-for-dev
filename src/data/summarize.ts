@@ -73,8 +73,9 @@ export async function summarizeSession(
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.text.slice(0, 500)}`)
     .join('\n\n');
 
-  const prompt = `Summarize this AI coding session in ONE sentence starting with the project and module. Max 50 words. No headings, labels, or structure.
-Format: "Project/Module: [one sentence of what was done]"
+  const prompt = `Summarize this AI coding session in ONE sentence. Start with the project name (from context below), then describe what was done. Max 50 words. No headings, labels, or extra structure.
+
+Example format: "agentmux: removed agentmux. references replacing with agentmux_core., fixed import errors in tests, and debugged Docker build failure due to missing GAR artifact download permissions."
 
 Project: ${session.project}
 
