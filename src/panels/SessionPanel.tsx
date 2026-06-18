@@ -41,6 +41,15 @@ function fmtTokens(n: number): string {
   return `${n}`;
 }
 
+function StickyHeader({ count }: { count: number }) {
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Text bold>🤖 Sessions (past 3d — {count})</Text>
+      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
+    </Box>
+  );
+}
+
 function SessionRow({
   session,
   summary,
@@ -94,25 +103,36 @@ export function SessionPanel({
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
   if (sessions.length === 0) return <Box><Text dimColor>No sessions in the past 3 days.</Text></Box>;
 
+  // Build flat items list: sticky header (index 0) + sessions (index 1..N)
+  // When selectedIndex === 0, header is selected and pinned at top (no scrolling).
+  const items = [
+    { type: 'header' as const },
+    ...sessions.map((s, i) => ({ type: 'session' as const, session: s, globalIndex: i })),
+  ];
+  // Adjust selected index: user's selectedIndex maps to items[selectedIndex + 1]
+  const adjustedIndex = selectedIndex + 1;
+
   return (
-    <Box flexDirection="column">
-      <Text bold>🤖 Sessions (past 3d — {sessions.length})</Text>
-      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
+    <Box flexDirection="column" height={height}>
       <ScrollList
         ref={listRef}
-        height={height - 3}  // subtract 2 title rows + 1 marginTop
-        selectedIndex={selectedIndex}
+        height={height}
+        selectedIndex={adjustedIndex}
         scrollAlignment="auto"
       >
-        {sessions.map((s, i) => (
-          <SessionRow
-            key={s.id}
-            session={s}
-            summary={summaryCache[s.id]?.summary}
-            selected={i === selectedIndex}
-            summarizing={summarizing && i === selectedIndex}
-          />
-        ))}
+        {items.map((item, i) =>
+          item.type === 'header'
+            ? <StickyHeader key="header" count={sessions.length} />
+            : (
+                <SessionRow
+                  key={item.session.id}
+                  session={item.session}
+                  summary={summaryCache[item.session.id]?.summary}
+                  selected={i === adjustedIndex}
+                  summarizing={summarizing && i === adjustedIndex}
+                />
+              )
+        )}
       </ScrollList>
     </Box>
   );
