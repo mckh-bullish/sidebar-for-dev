@@ -57,7 +57,7 @@ export function PrPanel({ prs, loading, error, selectedIndex = -1, terminalWidth
   const termW = terminalWidth ?? stdout?.columns ?? 120;
 
   // Title width: terminal width minus fixed columns (▶, #, review, check, time, padding) ≈ 70
-  const fixedWidth = 30;
+  const fixedWidth = 25;
   const titleWidth = Math.max(20, termW - fixedWidth);
 
   if (loading) return <Box><Text dimColor>Loading PRs…</Text></Box>;
