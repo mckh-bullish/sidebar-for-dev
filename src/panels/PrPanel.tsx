@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text, useStdout, useInput } from 'ink';
 import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
 import type { PrGroup, PrItem } from '../data/prs';
 
@@ -8,6 +8,9 @@ interface PrPanelProps {
   loading: boolean;
   error: string | null;
   selectedIndex?: number;
+  onNavigateUp?: () => void;
+  onNavigateDown?: () => void;
+  onEnter?: () => void;
 }
 
 function reviewBadge(decision: PrItem['decision']): { symbol: string; color: string } {
@@ -50,7 +53,7 @@ function PrRow({ pr, selected }: { pr: PrItem; selected: boolean }) {
   );
 }
 
-export function PrPanel({ prs, loading, error, selectedIndex = -1 }: PrPanelProps) {
+export function PrPanel({ prs, loading, error, selectedIndex = -1, onNavigateUp, onNavigateDown, onEnter }: PrPanelProps) {
   const listRef = useRef<ScrollListRef>(null);
   const { stdout } = useStdout();
   const rows = stdout?.rows ?? 24;
@@ -64,10 +67,15 @@ export function PrPanel({ prs, loading, error, selectedIndex = -1 }: PrPanelProp
   const totalPrs = repos.reduce((acc, r) => acc + prs[r].length, 0);
   let globalIndex = 0;
 
-  // Header: 1 title = 1 row. Use selectedIndex for scroll anchor.
-  // prSelectedIdx=-1 means no selection, so scroll to top.
-  const scrollHeight = Math.max(1, rows - 2);
+  // Header: 1 title = 1 row. Need -3 for TabBar(1)+marginTop(1)+title(1)
+  const scrollHeight = Math.max(1, rows - 3);
   const scrollIndex = selectedIndex >= 0 ? selectedIndex + 1 : 0; // +1 for header
+
+  useInput((input, key) => {
+    if (key.upArrow) { onNavigateUp?.(); return; }
+    if (key.downArrow) { onNavigateDown?.(); return; }
+    if (input === 'Enter') { onEnter?.(); return; }
+  });
 
   return (
     <Box flexDirection="column">

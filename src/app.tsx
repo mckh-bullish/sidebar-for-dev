@@ -211,17 +211,11 @@ export function App() {
 
     if (tab === 'sessions') {
       if (input === 's' || input === 'S') { void forceSummarize(); return; }
-      if (key.upArrow) { setSessionSelectedIdx(i => Math.max(0, i - 1)); return; }
-      if (key.downArrow) { setSessionSelectedIdx(i => Math.min(sessions.length - 1, i + 1)); return; }
     }
 
     if (tab === 'prs') {
-      const total = Object.values(prs).reduce((a, v) => a + v.length, 0);
-      if (key.upArrow) { setPrSelectedIdx(i => Math.max(-1, i - 1)); return; }
-      if (key.downArrow) { setPrSelectedIdx(i => Math.min(total - 1, i + 1)); return; }
       if (input === 'Enter') {
         if (prSelectedIdx < 0) return;
-        // Find the PR at flat index prSelectedIdx
         let count = 0;
         let target: PrItem | undefined;
         for (const repo of Object.values(prs)) {
@@ -301,6 +295,11 @@ export function App() {
             loading={prsLoading}
             error={prsError}
             selectedIndex={prSelectedIdx}
+            onNavigateUp={() => setPrSelectedIdx(i => Math.max(-1, i - 1))}
+            onNavigateDown={() => {
+              const total = Object.values(prs).reduce((a, v) => a + v.length, 0);
+              setPrSelectedIdx(i => Math.min(total - 1, i + 1));
+            }}
           />
         )}
         {tab === 'sessions' && (
@@ -311,6 +310,22 @@ export function App() {
             summarizing={summarizing}
             error={sessionsError}
             selectedIndex={sessionSelectedIdx}
+            onNavigateUp={() => setSessionSelectedIdx(i => Math.max(0, i - 1))}
+            onNavigateDown={() => setSessionSelectedIdx(i => Math.min(sessions.length - 1, i + 1))}
+            onEnter={() => {
+              const sess = sessions[sessionSelectedIdx];
+              if (!sess) return;
+              let cmd = '';
+              if (sess.tool === 'claude') cmd = `claude --resume ${sess.id}`;
+              else if (sess.tool === 'pi') cmd = `pi --resume ${sess.id}`;
+              else cmd = `open ${sess.id}`;
+              try {
+                execSync(`echo '${cmd}' | pbcopy`, { stdio: 'ignore' });
+                showFlash(`Copied: ${cmd}`);
+              } catch {
+                showFlash('Could not copy — check clipboard permissions');
+              }
+            }}
           />
         )}
       </Box>

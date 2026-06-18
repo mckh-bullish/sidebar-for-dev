@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text, useStdout, useInput } from 'ink';
 import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
 import type { NormalizedSession } from '../data/sessions/types';
 import type { SummaryCache } from '../data/summarize';
@@ -11,6 +11,9 @@ interface SessionPanelProps {
   summarizing: boolean;
   error: string | null;
   selectedIndex: number;
+  onNavigateUp: () => void;
+  onNavigateDown: () => void;
+  onEnter: () => void;
 }
 
 const TOOL_COLORS: Record<string, string> = {
@@ -94,6 +97,9 @@ export function SessionPanel({
   summarizing,
   error,
   selectedIndex,
+  onNavigateUp,
+  onNavigateDown,
+  onEnter,
 }: SessionPanelProps) {
   const listRef = useRef<ScrollListRef>(null);
   const { stdout } = useStdout();
@@ -105,6 +111,12 @@ export function SessionPanel({
 
   // Buffer: 4 rows reserved for TabBar(1) + marginTop(1) + title/subtitle(2)
   const scrollHeight = Math.max(1, rows - 4);
+
+  useInput((input, key) => {
+    if (key.upArrow) { onNavigateUp(); return; }
+    if (key.downArrow) { onNavigateDown(); return; }
+    if (input === 'Enter') { onEnter(); return; }
+  });
 
   return (
     <Box flexDirection="column">

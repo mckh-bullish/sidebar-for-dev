@@ -50,7 +50,6 @@ function Legend({ models, modelColors }: { models: string[]; modelColors: Settin
 }
 
 export function CostPanel({ days, settings, loading, error, terminalWidth }: CostPanelProps) {
-  const listRef = useRef<ScrollListRef>(null);
   const { stdout } = useStdout();
   const rows = stdout?.rows ?? 24;
 
@@ -62,13 +61,13 @@ export function CostPanel({ days, settings, loading, error, terminalWidth }: Cos
   const maxTotal = Math.max(...days.map(d => d.total), 0.001);
   const allModels = [...new Set(days.flatMap(d => d.models.map(m => m.model)))];
 
-  // Header: 1 title + 1 legend + 1 marginTop = 3 rows
-  const scrollHeight = Math.max(1, rows - 3);
+  // Header: 1 title + 1 legend + 1 marginTop = 3 rows. Need -4 to show full header.
+  const scrollHeight = Math.max(1, rows - 4);
 
   return (
     <Box flexDirection="column">
       <ScrollList
-        ref={listRef}
+        ref={useRef<ScrollListRef>(null)}
         height={scrollHeight}
         selectedIndex={0}
         scrollAlignment="top"
