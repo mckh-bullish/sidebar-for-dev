@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Box, Text, useStdout, useInput } from 'ink';
+import { Box, Text, useStdout } from 'ink';
 import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
 import type { NormalizedSession } from '../data/sessions/types';
 import type { SummaryCache } from '../data/summarize';
@@ -11,9 +11,6 @@ interface SessionPanelProps {
   summarizing: boolean;
   error: string | null;
   selectedIndex: number;
-  onNavigateUp: () => void;
-  onNavigateDown: () => void;
-  onEnter: () => void;
 }
 
 const TOOL_COLORS: Record<string, string> = {
@@ -97,11 +94,7 @@ export function SessionPanel({
   summarizing,
   error,
   selectedIndex,
-  onNavigateUp,
-  onNavigateDown,
-  onEnter,
 }: SessionPanelProps) {
-  const listRef = useRef<ScrollListRef>(null);
   const { stdout } = useStdout();
   const rows = stdout?.rows ?? 24;
 
@@ -109,21 +102,15 @@ export function SessionPanel({
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
   if (sessions.length === 0) return <Box><Text dimColor>No sessions in the past 3 days.</Text></Box>;
 
-  // Buffer: 4 rows reserved for TabBar(1) + marginTop(1) + title/subtitle(2)
+  // Buffer: TabBar(1) + marginTop(1) + title/subtitle(2) = 4
   const scrollHeight = Math.max(1, rows - 4);
-
-  useInput((input, key) => {
-    if (key.upArrow) { onNavigateUp(); return; }
-    if (key.downArrow) { onNavigateDown(); return; }
-    if (input === 'Enter') { onEnter(); return; }
-  });
 
   return (
     <Box flexDirection="column">
       <ScrollList
-        ref={listRef}
+        ref={useRef<ScrollListRef>(null)}
         height={scrollHeight}
-        selectedIndex={0}  // always header at top of viewport
+        selectedIndex={0}
         scrollAlignment="top"
       >
         <StickyHeader count={sessions.length} />

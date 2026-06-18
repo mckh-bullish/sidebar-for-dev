@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Box, Text, useStdout, useInput } from 'ink';
+import React, { useRef, useEffect } from 'react';
+import { Box, Text, useStdout } from 'ink';
 import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
 import type { PrGroup, PrItem } from '../data/prs';
 
@@ -9,9 +9,6 @@ interface PrPanelProps {
   error: string | null;
   selectedIndex?: number;
   terminalWidth?: number;
-  onNavigateUp?: () => void;
-  onNavigateDown?: () => void;
-  onEnter?: () => void;
 }
 
 function reviewBadge(decision: PrItem['decision']): { symbol: string; color: string } {
@@ -54,13 +51,12 @@ function PrRow({ pr, selected, titleWidth }: { pr: PrItem; selected: boolean; ti
   );
 }
 
-export function PrPanel({ prs, loading, error, selectedIndex = -1, terminalWidth, onNavigateUp, onNavigateDown, onEnter }: PrPanelProps) {
-  const listRef = useRef<ScrollListRef>(null);
+export function PrPanel({ prs, loading, error, selectedIndex = -1, terminalWidth }: PrPanelProps) {
   const { stdout } = useStdout();
   const rows = stdout?.rows ?? 24;
   const termW = terminalWidth ?? stdout?.columns ?? 120;
 
-  // Title width: terminal width minus fixed columns ≈ 70
+  // Title width: terminal width minus fixed columns (▶, #, review, check, time, padding) ≈ 70
   const fixedWidth = 70;
   const titleWidth = Math.max(20, termW - fixedWidth);
 
@@ -77,16 +73,10 @@ export function PrPanel({ prs, loading, error, selectedIndex = -1, terminalWidth
   const scrollHeight = Math.max(1, rows - 3);
   const scrollIndex = selectedIndex >= 0 ? selectedIndex + 1 : 0; // +1 for header
 
-  useInput((input, key) => {
-    if (key.upArrow) { onNavigateUp?.(); return; }
-    if (key.downArrow) { onNavigateDown?.(); return; }
-    if (input === 'Enter') { onEnter?.(); return; }
-  });
-
   return (
     <Box flexDirection="column">
       <ScrollList
-        ref={listRef}
+        ref={useRef<ScrollListRef>(null)}
         height={scrollHeight}
         selectedIndex={scrollIndex}
         scrollAlignment="auto"

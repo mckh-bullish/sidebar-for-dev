@@ -34,7 +34,15 @@ function nDaysAgo(n: number): Date {
 export function App() {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const terminalWidth = stdout?.columns ?? 120;
+  const [cols, setCols] = useState(stdout?.columns ?? 120);
+
+  useEffect(() => {
+    const onResize = () => setCols(stdout?.columns ?? 120);
+    (stdout as any)?.on('resize', onResize);
+    return () => (stdout as any)?.off('resize', onResize);
+  }, [stdout]);
+
+  const terminalWidth = cols;
 
   const [settings, setSettings] = useState<Settings>(() => loadConfig());
   const [tab, setTab] = useState<Tab>('cost');
@@ -211,9 +219,29 @@ export function App() {
 
     if (tab === 'sessions') {
       if (input === 's' || input === 'S') { void forceSummarize(); return; }
+      if (key.upArrow) { setSessionSelectedIdx(i => Math.max(0, i - 1)); return; }
+      if (key.downArrow) { setSessionSelectedIdx(i => Math.min(sessions.length - 1, i + 1)); return; }
+      if (input === 'Enter') {
+        const sess = sessions[sessionSelectedIdx];
+        if (!sess) return;
+        let cmd = '';
+        if (sess.tool === 'claude') cmd = `claude --resume ${sess.id}`;
+        else if (sess.tool === 'pi') cmd = `pi --resume ${sess.id}`;
+        else cmd = `open ${sess.id}`;
+        try {
+          execSync(`echo '${cmd}' | pbcopy`, { stdio: 'ignore' });
+          showFlash(`Copied: ${cmd}`);
+        } catch {
+          showFlash('Could not copy — check clipboard permissions');
+        }
+        return;
+      }
     }
 
     if (tab === 'prs') {
+      const total = Object.values(prs).reduce((a, v) => a + v.length, 0);
+      if (key.upArrow) { setPrSelectedIdx(i => Math.max(-1, i - 1)); return; }
+      if (key.downArrow) { setPrSelectedIdx(i => Math.min(total - 1, i + 1)); return; }
       if (input === 'Enter') {
         if (prSelectedIdx < 0) return;
         let count = 0;
@@ -296,11 +324,6 @@ export function App() {
             error={prsError}
             selectedIndex={prSelectedIdx}
             terminalWidth={terminalWidth}
-            onNavigateUp={() => setPrSelectedIdx(i => Math.max(-1, i - 1))}
-            onNavigateDown={() => {
-              const total = Object.values(prs).reduce((a, v) => a + v.length, 0);
-              setPrSelectedIdx(i => Math.min(total - 1, i + 1));
-            }}
           />
         )}
         {tab === 'sessions' && (
@@ -311,22 +334,6 @@ export function App() {
             summarizing={summarizing}
             error={sessionsError}
             selectedIndex={sessionSelectedIdx}
-            onNavigateUp={() => setSessionSelectedIdx(i => Math.max(0, i - 1))}
-            onNavigateDown={() => setSessionSelectedIdx(i => Math.min(sessions.length - 1, i + 1))}
-            onEnter={() => {
-              const sess = sessions[sessionSelectedIdx];
-              if (!sess) return;
-              let cmd = '';
-              if (sess.tool === 'claude') cmd = `claude --resume ${sess.id}`;
-              else if (sess.tool === 'pi') cmd = `pi --resume ${sess.id}`;
-              else cmd = `open ${sess.id}`;
-              try {
-                execSync(`echo '${cmd}' | pbcopy`, { stdio: 'ignore' });
-                showFlash(`Copied: ${cmd}`);
-              } catch {
-                showFlash('Could not copy — check clipboard permissions');
-              }
-            }}
           />
         )}
       </Box>
