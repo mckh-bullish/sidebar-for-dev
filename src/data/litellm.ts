@@ -9,40 +9,49 @@ export interface CostDay {
   models: CostModel[];
 }
 
-interface SpendLogEntry {
-  start_date?: string;
-  end_date?: string;
-  models: Record<string, number>;
-  spend: number;
+interface DailyActivityResult {
+  date: string;
+  metrics: { spend: number };
+  breakdown: {
+    models: Record<string, { metrics: { spend: number } }>;
+  };
+}
+
+interface DailyActivityResponse {
+  results: DailyActivityResult[];
 }
 
 /**
- * Parse /spend/logs response into grouped CostDay[] with stripped model prefixes.
+ * Parse /user/daily/activity response into CostDay[] with stripped model prefixes.
+ * Filters out models with zero spend and unknown/empty model names.
  */
-export function parseSpendLogs(entries: SpendLogEntry[]): CostDay[] {
-  const result: CostDay[] = [];
+export function parseDailyActivity(response: DailyActivityResponse): CostDay[] {
+  return response.results.map(r => {
+    const models: CostModel[] = Object.entries(r.breakdown.models ?? {})
+      .map(([model, v]) => ({
+        model: model.replace(/^vertex_ai\//, '').replace(/-\d{8}$/, ''), // strip date suffixes
+        spend: v.metrics.spend,
+      }))
+      .filter(m => m.spend > 0 && m.model.length > 0);
 
-  for (const day of entries) {
-    const cost = day.spend ?? 0;
-    const models: CostModel[] = [];
-
-    for (const [model, spend] of Object.entries(day.models ?? {})) {
-      models.push({ model: model.replace(/^vertex_ai\//, ''), spend });
+    // Merge duplicate model names after stripping
+    const merged = new Map<string, number>();
+    for (const m of models) {
+      merged.set(m.model, (merged.get(m.model) ?? 0) + m.spend);
     }
 
-    result.push({
-      date: day.start_date ?? '',
-      total: cost,
-      models,
-    });
-  }
-
-  return result;
+    return {
+      date: r.date,
+      total: r.metrics.spend,
+      models: [...merged.entries()].map(([model, spend]) => ({ model, spend })),
+    };
+  });
 }
 
 /**
- * Fetch spend logs from LiteLLM proxy for the given date range.
- * Returns CostDay[] grouped by day, each with per-model spend breakdown.
+ * Fetch daily spend from LiteLLM proxy for the given date range.
+ * Uses /user/daily/activity which returns per-day, per-model breakdowns
+ * and is accessible to internal_user role (unlike /global/spend/report).
  */
 export async function fetchSpendLogs(
   apiBase: string,
@@ -50,7 +59,7 @@ export async function fetchSpendLogs(
   startDate: string,
   endDate: string,
 ): Promise<CostDay[]> {
-  const url = new URL(`${apiBase}/spend/logs`);
+  const url = new URL(`${apiBase}/user/daily/activity`);
   url.searchParams.set('start_date', startDate);
   url.searchParams.set('end_date', endDate);
 
@@ -61,9 +70,9 @@ export async function fetchSpendLogs(
   });
 
   if (!response.ok) {
-    throw new Error(`LiteLLM spend/logs API ${response.status}: ${response.statusText}`);
+    throw new Error(`LiteLLM daily/activity API ${response.status}: ${response.statusText}`);
   }
 
-  const data = await response.json() as SpendLogEntry[];
-  return parseSpendLogs(data);
+  const data = await response.json() as DailyActivityResponse;
+  return parseDailyActivity(data);
 }
