@@ -284,6 +284,7 @@ export function App() {
             summarizing={summarizing}
             error={sessionsError}
             selectedIndex={sessionSelectedIdx}
+            height={stdout?.rows ?? 24} // viewport height in terminal rows
           />
         )}
       </Box>

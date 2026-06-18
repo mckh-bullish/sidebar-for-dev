@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Box, Text } from 'ink';
+import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
 import type { NormalizedSession } from '../data/sessions/types';
 import type { SummaryCache } from '../data/summarize';
 
@@ -10,6 +11,7 @@ interface SessionPanelProps {
   summarizing: boolean;
   error: string | null;
   selectedIndex: number;
+  height: number;
 }
 
 const TOOL_COLORS: Record<string, string> = {
@@ -84,7 +86,10 @@ export function SessionPanel({
   summarizing,
   error,
   selectedIndex,
+  height,
 }: SessionPanelProps) {
+  const listRef = useRef<ScrollListRef>(null);
+
   if (loading) return <Box><Text dimColor>Loading sessions…</Text></Box>;
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
   if (sessions.length === 0) return <Box><Text dimColor>No sessions in the past 3 days.</Text></Box>;
@@ -93,7 +98,12 @@ export function SessionPanel({
     <Box flexDirection="column">
       <Text bold>🤖 Sessions (past 3d — {sessions.length})</Text>
       <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
-      <Box marginTop={1} flexDirection="column">
+      <ScrollList
+        ref={listRef}
+        height={height}
+        selectedIndex={selectedIndex}
+        scrollAlignment="top"
+      >
         {sessions.map((s, i) => (
           <SessionRow
             key={s.id}
@@ -103,7 +113,7 @@ export function SessionPanel({
             summarizing={summarizing && i === selectedIndex}
           />
         ))}
-      </Box>
+      </ScrollList>
     </Box>
   );
 }
