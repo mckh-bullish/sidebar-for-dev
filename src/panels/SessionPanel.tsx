@@ -100,9 +100,9 @@ export function SessionPanel({
       <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
       <ScrollList
         ref={listRef}
-        height={height}
+        height={height - 3}  // subtract 2 title rows + 1 marginTop
         selectedIndex={selectedIndex}
-        scrollAlignment="top"
+        scrollAlignment="auto"
       >
         {sessions.map((s, i) => (
           <SessionRow
