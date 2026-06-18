@@ -1,0 +1,37 @@
+{
+  "name": "sidebar-for-dev",
+  "version": "0.0.1",
+  "description": "Dev sidebar TUI: cost, PRs, sessions dashboard",
+  "type": "module",
+  "main": "dist/app.js",
+  "bin": {
+    "sidebar": "dist/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/app.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ink": "^5.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "better-sqlite3": "^11.7.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.16.0",
+    "ink-testing-library": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
