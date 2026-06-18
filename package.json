@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/app.tsx",
+    "dev": "tsx src/index.tsx",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/",

@@ -1,4 +1,7 @@
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
+
+const _require = createRequire(import.meta.url);
 import { homedir } from 'node:os';
 import type { NormalizedSession, SessionSnippet } from './types';
 
@@ -61,8 +64,8 @@ export function readOpencodeSessionsFromDb(
   dbPath = OPENCODE_DB_PATH,
   cutoff: Date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
 ): NormalizedSession[] {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3') as typeof import('better-sqlite3');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Database = _require('better-sqlite3') as typeof import('better-sqlite3');
 
   let db: import('better-sqlite3').Database;
   try {
