@@ -64,7 +64,7 @@ function SessionRow({
         <Text bold>{projectName.slice(0, 25)}{projectName.length > 25 ? '…' : ''} </Text>
         <Text dimColor>{relTime(session.lastActivity)} </Text>
         <Text color="gray">↑{fmtTokens(session.inputTokens)} ↓{fmtTokens(session.outputTokens)} </Text>
-        <Text color={session.costRecorded ? 'green' : 'yellow'}>${session.cost.toFixed(3)}</Text>
+        <Text color={session.costRecorded ? 'green' : 'yellow'}>${session.cost < 0.01 ? session.cost.toFixed(4) : session.cost.toFixed(2)}</Text>
         {!session.costRecorded && <Text dimColor>~</Text>}
         <Text dimColor> {model}</Text>
       </Box>
