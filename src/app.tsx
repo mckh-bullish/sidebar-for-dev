@@ -106,8 +106,12 @@ export function App() {
       const merged = mergeSessions(claude, pi, opencode, cutoff);
       setSessions(merged);
 
-      // Auto-summarize any changed sessions (non-blocking)
+      // Load cache and render immediately, then summarize in background
       const cache = loadSummaryCache();
+      setSummaryCache({ ...cache });
+      setSessionsLoading(false);
+
+      // Background summarization — does not block render
       const s = settingsRef.current;
       const needSummary = merged.filter(sess => needsResummarization(sess, cache));
       if (needSummary.length > 0) {
@@ -118,17 +122,14 @@ export function App() {
             const text = await summarizeSession(sess, apiBase, apiKey, s.summaryModel);
             if (text) {
               cache[sess.id] = { summary: text, hash: computeContentHash(sess) };
+              setSummaryCache(prev => ({ ...prev, [sess.id]: cache[sess.id] }));
             }
           } catch { /* non-fatal */ }
         }
         saveSummaryCache(cache);
-        setSummaryCache({ ...cache });
-      } else {
-        setSummaryCache(cache);
       }
     } catch (e) {
       setSessionsError(e instanceof Error ? e.message : String(e));
-    } finally {
       setSessionsLoading(false);
     }
   }, []);
