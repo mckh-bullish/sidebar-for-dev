@@ -221,7 +221,7 @@ export function App() {
       if (input === 's' || input === 'S') { void forceSummarize(); return; }
       if (key.upArrow) { setSessionSelectedIdx(i => Math.max(0, i - 1)); return; }
       if (key.downArrow) { setSessionSelectedIdx(i => Math.min(sessions.length - 1, i + 1)); return; }
-      if (input === 'Enter') {
+      if (key.return) {
         const sess = sessions[sessionSelectedIdx];
         if (!sess) return;
         let cmd = '';
@@ -242,7 +242,7 @@ export function App() {
       const total = Object.values(prs).reduce((a, v) => a + v.length, 0);
       if (key.upArrow) { setPrSelectedIdx(i => Math.max(-1, i - 1)); return; }
       if (key.downArrow) { setPrSelectedIdx(i => Math.min(total - 1, i + 1)); return; }
-      if (input === 'Enter') {
+      if (key.return) {
         if (prSelectedIdx < 0) return;
         let count = 0;
         let target: PrItem | undefined;

@@ -57,7 +57,7 @@ export function PrPanel({ prs, loading, error, selectedIndex = -1, terminalWidth
   const termW = terminalWidth ?? stdout?.columns ?? 120;
 
   // Title width: terminal width minus fixed columns (▶, #, review, check, time, padding) ≈ 70
-  const fixedWidth = 70;
+  const fixedWidth = 30;
   const titleWidth = Math.max(20, termW - fixedWidth);
 
   if (loading) return <Box><Text dimColor>Loading PRs…</Text></Box>;
@@ -70,7 +70,7 @@ export function PrPanel({ prs, loading, error, selectedIndex = -1, terminalWidth
   let globalIndex = 0;
 
   // Header: 1 title = 1 row. Need -3 for TabBar(1)+marginTop(1)+title(1)
-  const scrollHeight = Math.max(1, rows - 3);
+  const scrollHeight = Math.max(1, rows - 4);
   const scrollIndex = selectedIndex >= 0 ? selectedIndex + 1 : 0; // +1 for header
 
   return (
