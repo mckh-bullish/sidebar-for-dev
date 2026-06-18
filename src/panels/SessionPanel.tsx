@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
-import { Box, Text } from 'ink';
-import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
+import React, { useRef, useState, useEffect } from 'react';
+import { Box, Text, useStdout } from 'ink';
+import { ScrollView, type ScrollViewRef } from 'ink-scroll-view';
 import type { NormalizedSession } from '../data/sessions/types';
 import type { SummaryCache } from '../data/summarize';
 
@@ -39,15 +39,6 @@ function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return `${n}`;
-}
-
-function StickyHeader({ count }: { count: number }) {
-  return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Text bold>🤖 Sessions (past 3d — {count})</Text>
-      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
-    </Box>
-  );
 }
 
 function SessionRow({
@@ -97,43 +88,51 @@ export function SessionPanel({
   selectedIndex,
   height,
 }: SessionPanelProps) {
-  const listRef = useRef<ScrollListRef>(null);
+  const listRef = useRef<ScrollViewRef>(null);
+  const { stdout } = useStdout();
+  const [scrollOffset, setScrollOffset] = useState(0);
 
   if (loading) return <Box><Text dimColor>Loading sessions…</Text></Box>;
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
   if (sessions.length === 0) return <Box><Text dimColor>No sessions in the past 3 days.</Text></Box>;
 
-  // Build flat items list: sticky header (index 0) + sessions (index 1..N)
-  // When selectedIndex === 0, header is selected and pinned at top (no scrolling).
-  const items = [
-    { type: 'header' as const },
-    ...sessions.map((s, i) => ({ type: 'session' as const, session: s, globalIndex: i })),
-  ];
-  // Adjust selected index: user's selectedIndex maps to items[selectedIndex + 1]
-  const adjustedIndex = selectedIndex + 1;
+  // Each session takes 3 lines: 2 content lines + 1 blank line
+  const lineHeight = 3;
+  const termRows = stdout?.rows ?? 24;
+  // Header: 2 title rows + 1 marginTop gap = 3 rows
+  const headerRows = 3;
+  const viewportHeight = Math.max(1, termRows - headerRows);
+
+  // Compute scroll offset: when selectedIndex changes, scroll to keep it visible at top
+  useEffect(() => {
+    // Scroll so the selected item appears just below the header (top of viewport)
+    const targetOffset = Math.min(
+      selectedIndex * lineHeight,
+      sessions.length * lineHeight - viewportHeight,
+    );
+    setScrollOffset(targetOffset);
+  }, [selectedIndex, sessions.length, viewportHeight]);
+
+  const visibleStart = Math.min(scrollOffset, Math.max(0, sessions.length - Math.ceil(viewportHeight / lineHeight)));
+  const visibleCount = Math.min(Math.ceil(viewportHeight / lineHeight), sessions.length - visibleStart);
 
   return (
-    <Box flexDirection="column" height={height}>
-      <ScrollList
-        ref={listRef}
-        height={height}
-        selectedIndex={adjustedIndex}
-        scrollAlignment="auto"
-      >
-        {items.map((item, i) =>
-          item.type === 'header'
-            ? <StickyHeader key="header" count={sessions.length} />
-            : (
-                <SessionRow
-                  key={item.session.id}
-                  session={item.session}
-                  summary={summaryCache[item.session.id]?.summary}
-                  selected={i === adjustedIndex}
-                  summarizing={summarizing && i === adjustedIndex}
-                />
-              )
-        )}
-      </ScrollList>
+    <Box flexDirection="column">
+      <Text bold>🤖 Sessions (past 3d — {sessions.length})</Text>
+      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
+      <Box marginTop={1}>
+        <Box flexDirection="column" height={viewportHeight} overflow="hidden">
+          {sessions.slice(visibleStart, visibleStart + visibleCount).map((s, i) => (
+            <SessionRow
+              key={s.id}
+              session={s}
+              summary={summaryCache[s.id]?.summary}
+              selected={i + visibleStart === selectedIndex}
+              summarizing={summarizing && i + visibleStart === selectedIndex}
+            />
+          ))}
+        </Box>
+      </Box>
     </Box>
   );
 }
