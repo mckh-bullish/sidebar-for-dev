@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Box, Text, useStdout } from 'ink';
-import { ScrollView, type ScrollViewRef } from 'ink-scroll-view';
+import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
 import type { NormalizedSession } from '../data/sessions/types';
 import type { SummaryCache } from '../data/summarize';
 
@@ -11,7 +11,6 @@ interface SessionPanelProps {
   summarizing: boolean;
   error: string | null;
   selectedIndex: number;
-  height: number;
 }
 
 const TOOL_COLORS: Record<string, string> = {
@@ -39,6 +38,15 @@ function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return `${n}`;
+}
+
+function StickyHeader({ count }: { count: number }) {
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Text bold>🤖 Sessions (past 3d — {count})</Text>
+      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
+    </Box>
+  );
 }
 
 function SessionRow({
@@ -86,53 +94,42 @@ export function SessionPanel({
   summarizing,
   error,
   selectedIndex,
-  height,
 }: SessionPanelProps) {
-  const listRef = useRef<ScrollViewRef>(null);
+  const listRef = useRef<ScrollListRef>(null);
   const { stdout } = useStdout();
-  const [scrollOffset, setScrollOffset] = useState(0);
+  const rows = stdout?.rows ?? 24;
 
   if (loading) return <Box><Text dimColor>Loading sessions…</Text></Box>;
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
   if (sessions.length === 0) return <Box><Text dimColor>No sessions in the past 3 days.</Text></Box>;
 
-  // Each session takes 3 lines: 2 content lines + 1 blank line
-  const lineHeight = 3;
-  const termRows = stdout?.rows ?? 24;
-  // Header: 2 title rows + 1 marginTop gap = 3 rows
-  const headerRows = 3;
-  const viewportHeight = Math.max(1, termRows - headerRows);
+  // Header is the first item in the scroll list (index 0), sessions follow.
+  // selectedIndex from parent maps to items[selectedIndex + 1].
+  // Always start with header selected (index 0) → scrolled to top.
+  const headerHeight = 2;
+  const scrollHeight = Math.max(1, rows - headerHeight);
 
-  // Compute scroll offset: when selectedIndex changes, scroll to keep it visible at top
-  useEffect(() => {
-    // Scroll so the selected item appears just below the header (top of viewport)
-    const targetOffset = Math.min(
-      selectedIndex * lineHeight,
-      sessions.length * lineHeight - viewportHeight,
-    );
-    setScrollOffset(targetOffset);
-  }, [selectedIndex, sessions.length, viewportHeight]);
-
-  const visibleStart = Math.min(scrollOffset, Math.max(0, sessions.length - Math.ceil(viewportHeight / lineHeight)));
-  const visibleCount = Math.min(Math.ceil(viewportHeight / lineHeight), sessions.length - visibleStart);
+  const adjustedIndex = selectedIndex + 1;
 
   return (
     <Box flexDirection="column">
-      <Text bold>🤖 Sessions (past 3d — {sessions.length})</Text>
-      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
-      <Box marginTop={1}>
-        <Box flexDirection="column" height={viewportHeight} overflow="hidden">
-          {sessions.slice(visibleStart, visibleStart + visibleCount).map((s, i) => (
-            <SessionRow
-              key={s.id}
-              session={s}
-              summary={summaryCache[s.id]?.summary}
-              selected={i + visibleStart === selectedIndex}
-              summarizing={summarizing && i + visibleStart === selectedIndex}
-            />
-          ))}
-        </Box>
-      </Box>
+      <ScrollList
+        ref={listRef}
+        height={scrollHeight}
+        selectedIndex={0}  // always header at top of viewport
+        scrollAlignment="top"
+      >
+        <StickyHeader count={sessions.length} />
+        {sessions.map((s, i) => (
+          <SessionRow
+            key={s.id}
+            session={s}
+            summary={summaryCache[s.id]?.summary}
+            selected={false}
+            summarizing={false}
+          />
+        ))}
+      </ScrollList>
     </Box>
   );
 }
