@@ -233,7 +233,7 @@ export function App() {
         if (!sess) return;
         let cmd = '';
         if (sess.tool === 'claude') cmd = `cd ${sess.project} && claude --resume ${sess.id}`;
-        else if (sess.tool === 'pi') cmd = `cd ${sess.project} && pi --resume ${sess.id}`;
+        else if (sess.tool === 'pi') cmd = `cd ${sess.project} && pi --session ${sess.id}`;
         else cmd = `cd ${sess.project} && open ${sess.id}`;
         try {
           execSync(`echo '${cmd}' | pbcopy`, { stdio: 'ignore' });
