@@ -8,6 +8,7 @@ interface PrPanelProps {
   loading: boolean;
   error: string | null;
   selectedIndex?: number;
+  terminalWidth?: number;
   onNavigateUp?: () => void;
   onNavigateDown?: () => void;
   onEnter?: () => void;
@@ -37,7 +38,7 @@ function relTime(iso: string): string {
   return `${d}d ago`;
 }
 
-function PrRow({ pr, selected }: { pr: PrItem; selected: boolean }) {
+function PrRow({ pr, selected, titleWidth }: { pr: PrItem; selected: boolean; titleWidth: number }) {
   const review = reviewBadge(pr.decision);
   const check = checkBadge(pr);
   return (
@@ -45,7 +46,7 @@ function PrRow({ pr, selected }: { pr: PrItem; selected: boolean }) {
       {selected && <Text color="cyan">▶ </Text>}
       {!selected && <Text>  </Text>}
       <Text bold color={selected ? 'cyan' : undefined}>#{pr.number} </Text>
-      <Text>{pr.title.slice(0, 40)}{pr.title.length > 40 ? '…' : ''} </Text>
+      <Text>{pr.title.slice(0, titleWidth)}{pr.title.length > titleWidth ? '…' : ''} </Text>
       <Text color={review.color}>{review.symbol} </Text>
       <Text color={check.color}>{check.symbol} </Text>
       <Text dimColor>{relTime(pr.updatedAt)}</Text>
@@ -53,10 +54,15 @@ function PrRow({ pr, selected }: { pr: PrItem; selected: boolean }) {
   );
 }
 
-export function PrPanel({ prs, loading, error, selectedIndex = -1, onNavigateUp, onNavigateDown, onEnter }: PrPanelProps) {
+export function PrPanel({ prs, loading, error, selectedIndex = -1, terminalWidth, onNavigateUp, onNavigateDown, onEnter }: PrPanelProps) {
   const listRef = useRef<ScrollListRef>(null);
   const { stdout } = useStdout();
   const rows = stdout?.rows ?? 24;
+  const termW = terminalWidth ?? stdout?.columns ?? 120;
+
+  // Title width: terminal width minus fixed columns ≈ 70
+  const fixedWidth = 70;
+  const titleWidth = Math.max(20, termW - fixedWidth);
 
   if (loading) return <Box><Text dimColor>Loading PRs…</Text></Box>;
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
@@ -91,7 +97,7 @@ export function PrPanel({ prs, loading, error, selectedIndex = -1, onNavigateUp,
             <Text bold color="yellow">{repo}</Text>
             {prs[repo].map(pr => {
               const idx = globalIndex++;
-              return <PrRow key={pr.number} pr={pr} selected={idx === selectedIndex} />;
+              return <PrRow key={pr.number} pr={pr} selected={idx === selectedIndex} titleWidth={titleWidth} />;
             })}
           </Box>
         ))}

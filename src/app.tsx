@@ -295,6 +295,7 @@ export function App() {
             loading={prsLoading}
             error={prsError}
             selectedIndex={prSelectedIdx}
+            terminalWidth={terminalWidth}
             onNavigateUp={() => setPrSelectedIdx(i => Math.max(-1, i - 1))}
             onNavigateDown={() => {
               const total = Object.values(prs).reduce((a, v) => a + v.length, 0);

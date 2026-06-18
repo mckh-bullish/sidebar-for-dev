@@ -73,7 +73,7 @@ export async function summarizeSession(
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.text.slice(0, 500)}`)
     .join('\n\n');
 
-  const prompt = `Summarize the following AI coding session in 1-2 concise sentences. Focus on what was being built or solved.
+  const prompt = `Summarize this AI coding session in AT MOST 50 WORDS. One extremely concise sentence describing what was done.
 
 Project: ${session.project}
 
@@ -88,7 +88,7 @@ ${transcript}`;
     body: JSON.stringify({
       model,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 150,
+      max_tokens: 80,
       temperature: 0.3,
     }),
   });
