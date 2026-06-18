@@ -73,7 +73,8 @@ export async function summarizeSession(
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.text.slice(0, 500)}`)
     .join('\n\n');
 
-  const prompt = `Summarize this AI coding session in ONE sentence. Max 50 words. Do NOT add headings, labels, or any structure. Just one sentence: what was built or solved.
+  const prompt = `Summarize this AI coding session in ONE sentence starting with the project and module. Max 50 words. No headings, labels, or structure.
+Format: "Project/Module: [one sentence of what was done]"
 
 Project: ${session.project}
 
