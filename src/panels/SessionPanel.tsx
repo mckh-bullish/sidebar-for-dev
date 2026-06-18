@@ -44,7 +44,7 @@ function StickyHeader({ count }: { count: number }) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text bold>🤖 Sessions (past 3d — {count})</Text>
-      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh</Text>
+      <Text dimColor>  CC=Claude Code  PI=pi  OC=opencode  |  S=summarize  R=refresh  Enter=copy command</Text>
     </Box>
   );
 }
@@ -103,13 +103,8 @@ export function SessionPanel({
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
   if (sessions.length === 0) return <Box><Text dimColor>No sessions in the past 3 days.</Text></Box>;
 
-  // Header is the first item in the scroll list (index 0), sessions follow.
-  // selectedIndex from parent maps to items[selectedIndex + 1].
-  // Always start with header selected (index 0) → scrolled to top.
-  // Buffer: 2 header rows + 1 bottom margin to avoid clipping at terminal edge
-  const scrollHeight = Math.max(1, rows - 3);
-
-  const adjustedIndex = selectedIndex + 1;
+  // Buffer: 4 rows reserved for TabBar(1) + marginTop(1) + title/subtitle(2)
+  const scrollHeight = Math.max(1, rows - 4);
 
   return (
     <Box flexDirection="column">
@@ -125,8 +120,8 @@ export function SessionPanel({
             key={s.id}
             session={s}
             summary={summaryCache[s.id]?.summary}
-            selected={false}
-            summarizing={false}
+            selected={i === selectedIndex}
+            summarizing={summarizing && i === selectedIndex}
           />
         ))}
       </ScrollList>

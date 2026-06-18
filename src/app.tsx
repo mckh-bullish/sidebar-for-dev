@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { execSync } from 'node:child_process';
 import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import { loadConfig, saveConfig } from './config';
 import type { Settings } from './config';
 import { fetchSpendLogs } from './data/litellm';
-import { fetchOpenPrs } from './data/prs';
+import { fetchOpenPrs, type PrItem } from './data/prs';
 import { readClaudeSessions } from './data/sessions/claude';
 import { readPiSessions } from './data/sessions/pi';
 import { readOpencodeSessionsFromDb } from './data/sessions/opencode';
@@ -57,6 +58,8 @@ export function App() {
   const [sessionSelectedIdx, setSessionSelectedIdx] = useState(0);
   const [summaryCache, setSummaryCache] = useState<SummaryCache>(() => loadSummaryCache());
   const [summarizing, setSummarizing] = useState(false);
+  const [flashMsg, setFlashMsg] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -178,6 +181,13 @@ export function App() {
     return () => clearInterval(id);
   }, [settings.refreshIntervals.sessions, refreshSessions]);
 
+  // ── Flash message helper ─────────────────────────────────────────
+  const showFlash = useCallback((msg: string) => {
+    setFlashMsg(msg);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlashMsg(null), 3000);
+  }, []);
+
   // ── Keyboard ─────────────────────────────────────────────────────
   useInput((input, key) => {
     if (tab === 'settings') return; // SettingsPanel handles its own input
@@ -209,6 +219,22 @@ export function App() {
       const total = Object.values(prs).reduce((a, v) => a + v.length, 0);
       if (key.upArrow) { setPrSelectedIdx(i => Math.max(-1, i - 1)); return; }
       if (key.downArrow) { setPrSelectedIdx(i => Math.min(total - 1, i + 1)); return; }
+      if (input === 'Enter') {
+        if (prSelectedIdx < 0) return;
+        // Find the PR at flat index prSelectedIdx
+        let count = 0;
+        let target: PrItem | undefined;
+        for (const repo of Object.values(prs)) {
+          for (const pr of repo) {
+            if (count === prSelectedIdx) { target = pr; break; }
+            count++;
+          }
+          if (target) break;
+        }
+        if (target?.url) {
+          try { execSync(`open "${target.url}"`, { stdio: 'ignore' }); } catch { /* best effort */ }
+        }
+      }
     }
   });
 
@@ -258,6 +284,7 @@ export function App() {
   return (
     <Box flexDirection="column">
       <TabBar />
+      {flashMsg && <Box><Text bold color="cyan">{flashMsg}</Text></Box>}
       <Box marginTop={1} flexDirection="column">
         {tab === 'cost' && (
           <CostPanel
