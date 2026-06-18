@@ -106,8 +106,8 @@ export function SessionPanel({
   // Header is the first item in the scroll list (index 0), sessions follow.
   // selectedIndex from parent maps to items[selectedIndex + 1].
   // Always start with header selected (index 0) → scrolled to top.
-  const headerHeight = 2;
-  const scrollHeight = Math.max(1, rows - headerHeight);
+  // Buffer: 2 header rows + 1 bottom margin to avoid clipping at terminal edge
+  const scrollHeight = Math.max(1, rows - 3);
 
   const adjustedIndex = selectedIndex + 1;
 
