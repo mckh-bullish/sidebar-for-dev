@@ -61,9 +61,8 @@ export function readOpencodeSessionsFromDb(
   dbPath = OPENCODE_DB_PATH,
   cutoff: Date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
 ): NormalizedSession[] {
-  // Dynamic import to avoid crashing if better-sqlite3 is not available
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3') as typeof import('better-sqlite3').default;
+  const Database = require('better-sqlite3') as typeof import('better-sqlite3');
 
   let db: import('better-sqlite3').Database;
   try {
@@ -75,7 +74,7 @@ export function readOpencodeSessionsFromDb(
   try {
     const cutoffMs = cutoff.getTime();
 
-    const sessionRows = db.prepare<[], SessionRow>(`
+    const sessionRows = db.prepare<[number], SessionRow>(`
       SELECT id, project_id, directory, title, cost, tokens_input, tokens_output,
              model, time_created, time_updated, time_archived
       FROM session

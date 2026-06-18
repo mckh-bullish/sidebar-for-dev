@@ -64,6 +64,6 @@ export async function fetchSpendLogs(
     throw new Error(`LiteLLM spend/logs API ${response.status}: ${response.statusText}`);
   }
 
-  const data: SpendLogEntry[] = await response.json();
+  const data = await response.json() as SpendLogEntry[];
   return parseSpendLogs(data);
 }
