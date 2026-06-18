@@ -1,5 +1,6 @@
-import React from 'react';
-import { Box, Text } from 'ink';
+import React, { useRef } from 'react';
+import { Box, Text, useStdout } from 'ink';
+import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
 import type { PrGroup, PrItem } from '../data/prs';
 
 interface PrPanelProps {
@@ -50,6 +51,10 @@ function PrRow({ pr, selected }: { pr: PrItem; selected: boolean }) {
 }
 
 export function PrPanel({ prs, loading, error, selectedIndex = -1 }: PrPanelProps) {
+  const listRef = useRef<ScrollListRef>(null);
+  const { stdout } = useStdout();
+  const rows = stdout?.rows ?? 24;
+
   if (loading) return <Box><Text dimColor>Loading PRs…</Text></Box>;
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
 
@@ -59,18 +64,30 @@ export function PrPanel({ prs, loading, error, selectedIndex = -1 }: PrPanelProp
   const totalPrs = repos.reduce((acc, r) => acc + prs[r].length, 0);
   let globalIndex = 0;
 
+  // Header: 1 title = 1 row. Use selectedIndex for scroll anchor.
+  // prSelectedIdx=-1 means no selection, so scroll to top.
+  const scrollHeight = Math.max(1, rows - 2);
+  const scrollIndex = selectedIndex >= 0 ? selectedIndex + 1 : 0; // +1 for header
+
   return (
     <Box flexDirection="column">
-      <Text bold>🔀 Open PRs ({totalPrs})</Text>
-      {repos.sort().map(repo => (
-        <Box key={repo} flexDirection="column" marginTop={1}>
-          <Text bold color="yellow">{repo}</Text>
-          {prs[repo].map(pr => {
-            const idx = globalIndex++;
-            return <PrRow key={pr.number} pr={pr} selected={idx === selectedIndex} />;
-          })}
-        </Box>
-      ))}
+      <ScrollList
+        ref={listRef}
+        height={scrollHeight}
+        selectedIndex={scrollIndex}
+        scrollAlignment="auto"
+      >
+        <Text bold>🔀 Open PRs ({totalPrs})</Text>
+        {repos.sort().map(repo => (
+          <Box key={repo} flexDirection="column" marginTop={1}>
+            <Text bold color="yellow">{repo}</Text>
+            {prs[repo].map(pr => {
+              const idx = globalIndex++;
+              return <PrRow key={pr.number} pr={pr} selected={idx === selectedIndex} />;
+            })}
+          </Box>
+        ))}
+      </ScrollList>
     </Box>
   );
 }

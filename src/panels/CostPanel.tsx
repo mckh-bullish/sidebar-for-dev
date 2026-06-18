@@ -1,8 +1,9 @@
-import React from 'react';
-import { Box, Text } from 'ink';
+import React, { useRef } from 'react';
+import { Box, Text, useStdout } from 'ink';
+import { ScrollList, type ScrollListRef } from 'ink-scroll-list';
+import type { CostDay } from '../data/litellm';
 import { resolveModelColor } from '../pricing';
 import type { Settings } from '../config';
-import type { CostDay } from '../data/litellm';
 
 interface CostPanelProps {
   days: CostDay[];
@@ -49,35 +50,48 @@ function Legend({ models, modelColors }: { models: string[]; modelColors: Settin
 }
 
 export function CostPanel({ days, settings, loading, error, terminalWidth }: CostPanelProps) {
+  const listRef = useRef<ScrollListRef>(null);
+  const { stdout } = useStdout();
+  const rows = stdout?.rows ?? 24;
+
   if (loading) return <Box><Text dimColor>Loading cost data…</Text></Box>;
   if (error) return <Box><Text color="red">Error: {error}</Text></Box>;
   if (days.length === 0) return <Box><Text dimColor>No cost data available.</Text></Box>;
 
   const barWidth = terminalWidth - LABEL_WIDTH - TOTAL_WIDTH - 2;
   const maxTotal = Math.max(...days.map(d => d.total), 0.001);
-
   const allModels = [...new Set(days.flatMap(d => d.models.map(m => m.model)))];
+
+  // Header: 1 title + 1 legend + 1 marginTop = 3 rows
+  const scrollHeight = Math.max(1, rows - 3);
 
   return (
     <Box flexDirection="column">
-      <Text bold>💰 Cost (last {settings.costChartDays}d)</Text>
-      <Box marginTop={1} marginBottom={1}>
-        <Legend models={allModels} modelColors={settings.modelColors} />
-      </Box>
-      {days.map(day => {
-        const segments = buildBar(day, maxTotal, barWidth, settings.modelColors);
-        return (
-          <Box key={day.date} flexDirection="row" marginBottom={0}>
-            <Text dimColor>{day.date} </Text>
-            <Box flexDirection="row">
-              {segments.map((seg, i) => (
-                <Text key={i} color={seg.color}>{'█'.repeat(seg.chars)}</Text>
-              ))}
+      <ScrollList
+        ref={listRef}
+        height={scrollHeight}
+        selectedIndex={0}
+        scrollAlignment="top"
+      >
+        <Text bold>💰 Cost (last {settings.costChartDays}d)</Text>
+        <Box marginTop={1} marginBottom={1}>
+          <Legend models={allModels} modelColors={settings.modelColors} />
+        </Box>
+        {days.map(day => {
+          const segments = buildBar(day, maxTotal, barWidth, settings.modelColors);
+          return (
+            <Box key={day.date} flexDirection="row" marginBottom={0}>
+              <Text dimColor>{day.date} </Text>
+              <Box flexDirection="row">
+                {segments.map((seg, i) => (
+                  <Text key={i} color={seg.color}>{'█'.repeat(seg.chars)}</Text>
+                ))}
+              </Box>
+              <Text dimColor> {formatCost(day.total)}</Text>
             </Box>
-            <Text dimColor> {formatCost(day.total)}</Text>
-          </Box>
-        );
-      })}
+          );
+        })}
+      </ScrollList>
     </Box>
   );
 }
