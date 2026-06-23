@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import type { NormalizedSession } from './sessions/types';
+
+const LOG = join(homedir(), '.pi/agent/sidebar-stderr.log');
 
 export interface SummaryEntry {
   summary: string;
@@ -66,7 +68,7 @@ export async function summarizeSession(
   model: string,
 ): Promise<string | null> {
   if (session.messages.length === 0) {
-    console.error(`[summarize] no messages for ${session.tool} session ${session.id}`);
+    appendFileSync(LOG, `[${new Date().toISOString()}] no messages for ${session.tool} session ${session.id}\n`);
     return null;
   }
 
