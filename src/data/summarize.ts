@@ -65,7 +65,10 @@ export async function summarizeSession(
   apiKey: string,
   model: string,
 ): Promise<string | null> {
-  if (session.messages.length === 0) return null;
+  if (session.messages.length === 0) {
+    console.error(`[summarize] no messages for ${session.tool} session ${session.id}`);
+    return null;
+  }
 
   // Take up to last 20 messages to stay within context
   const recent = session.messages.slice(-20);

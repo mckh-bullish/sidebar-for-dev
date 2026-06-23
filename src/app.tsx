@@ -213,15 +213,7 @@ export function App() {
     if (input === 'r' || input === 'R') {
       if (tab === 'cost') void refreshCost();
       else if (tab === 'prs') void refreshPrs();
-      else if (tab === 'sessions') {
-        // R on sessions: force-regenerate summary for selected session
-        if (sessionSelectedIdx >= 0 && sessions[sessionSelectedIdx]) {
-          void forceSummarize();
-        } else {
-          void refreshSessions();
-        }
-        return;
-      }
+      else if (tab === 'sessions') { void refreshSessions(); return; }
     }
 
     if (tab === 'sessions') {

@@ -52,6 +52,11 @@ function extractText(data: MessageData): string {
       .map(b => b.text ?? '')
       .join('');
   }
+  // fallback: stringify whole data
+  if (typeof data === 'object' && data !== null) {
+    const raw = JSON.stringify(data);
+    if (raw.length < 2000) return raw;
+  }
   return '';
 }
 
